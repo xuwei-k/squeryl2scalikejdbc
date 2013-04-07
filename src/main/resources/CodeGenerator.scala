@@ -281,7 +281,7 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
      */
     val createMethod = {
       val createColumns: List[Column] = allColumns.filterNot {
-        c => table.autoIncrementColumns.find(aic => aic.name == c.name).isDefined
+        c => table.autoIncrementColumns.exists(_.name == c.name)
       }
 
       val placeHolderPart: String = config.template match {
@@ -291,7 +291,7 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
           createColumns.map(c => 4.indent + "/*'" + c.nameInScala + "*/" + c.dummyValue).mkString(comma + eol)
         case GeneratorTemplate.interpolation if createColumns.size <= 22 =>
           createColumns.map(c => 4.indent + "${" + c.nameInScala + "}").mkString(comma + eol)
-        case _ =>
+        case GeneratorTemplate.namedParameters =>
           createColumns.map(c => 4.indent + "{" + c.nameInScala + "}").mkString(comma + eol)
       }
 
@@ -728,27 +728,20 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
   }
 
   def modelAll(): String = {
-    val jodaTimeImport = table.allColumns.flatMap {
-      c =>
-        c.rawTypeInScala match {
-          case TypeName.DateTime => Some("DateTime")
-          case TypeName.LocalDate => Some("LocalDate")
-          case TypeName.LocalTime => Some("LocalTime")
-          case _ => None
-        }
+    val rawTypeNames = table.allColumns.map(_.rawTypeInScala)
+    val jodaTimeImport = rawTypeNames.collect{
+      case TypeName.DateTime  => "DateTime"
+      case TypeName.LocalDate => "LocalDate"
+      case TypeName.LocalTime => "LocalTime"
     } match {
       case classes if classes.size > 0 => "import org.joda.time.{" + classes.distinct.mkString(", ") + "}" + eol
       case _ => ""
     }
-    val javaSqlImport = table.allColumns.flatMap {
-      c =>
-        c.rawTypeInScala match {
-          case TypeName.Blob => Some("Blob")
-          case TypeName.Clob => Some("Clob")
-          case TypeName.Ref => Some("Ref")
-          case TypeName.Struct => Some("Struct")
-          case _ => None
-        }
+    val javaSqlImport = rawTypeNames.collect{
+      case TypeName.Blob   => "Blob"
+      case TypeName.Clob   => "Clob"
+      case TypeName.Ref    => "Ref"
+      case TypeName.Struct => "Struct"
     } match {
       case classes if classes.size > 0 => "import java.sql.{" + classes.distinct.mkString(", ") + "}" + eol
       case _ => ""

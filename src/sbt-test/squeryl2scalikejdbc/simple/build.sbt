@@ -7,3 +7,5 @@ Squeryl2scalikejdbcKeys.outputDirectory <<= scalaSource in Compile
 Squeryl2scalikejdbcKeys.schema := "squeryl2scalikejdbc.test.schema$"
 
 squeryl2scalikejdbcSettings
+
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xlint")
