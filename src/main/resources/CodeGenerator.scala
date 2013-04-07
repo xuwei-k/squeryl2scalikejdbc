@@ -50,11 +50,11 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
   import java.io.{ OutputStreamWriter, FileOutputStream, File }
   import CodeGenerator._
 
-  private val packageName = config.packageName
-  private val className = specifiedClassName.getOrElse(toClassName(table))
-  private val syntaxName = "[A-Z]".r.findAllIn(className).mkString.toLowerCase
-  private val comma = ","
-  private val eol = config.lineBreak.value
+  private[this] val packageName = config.packageName
+  private[this] val className = specifiedClassName.getOrElse(toClassName(table))
+  private[this] val syntaxName = "[A-Z]".r.findAllIn(className).mkString.toLowerCase
+  private[this] val comma = ","
+  private[this] val eol = config.lineBreak.value
 
   object TypeName {
     val Any = "Any"
@@ -444,9 +444,9 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
       }
 
       val placeHolderPart: String = config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL =>
+        case GeneratorTemplate.basic =>
           (1 to createColumns.size).map(c => 4.indent + "?").mkString(comma + eol)
-        case GeneratorTemplate.executable | GeneratorTemplate.executableSQL =>
+        case GeneratorTemplate.executable =>
           createColumns.map(c => 4.indent + "/*'" + c.nameInScala + "*/" + c.dummyValue).mkString(comma + eol)
         case GeneratorTemplate.interpolation if createColumns.size <= 22 =>
           createColumns.map(c => 4.indent + "${" + c.nameInScala + "}").mkString(comma + eol)
@@ -455,7 +455,7 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
       }
 
       val bindingPart: String = config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL =>
+        case GeneratorTemplate.basic =>
           3.indent + ".bind(" + eol +
             createColumns.map(c => 4.indent + c.nameInScala).mkString(comma + eol)
         case GeneratorTemplate.interpolation if createColumns.size <= 22 => ""
@@ -539,9 +539,9 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
     val updateMethod = {
 
       val placeHolderPart: String = config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL =>
+        case GeneratorTemplate.basic =>
           allColumns.map(c => 4.indent + c.name + " = ?").mkString(comma + eol)
-        case GeneratorTemplate.executable | GeneratorTemplate.executableSQL =>
+        case GeneratorTemplate.executable =>
           allColumns.map(c => 4.indent + c.name + " = /*'" + c.nameInScala + "*/" + c.dummyValue).mkString(comma + eol)
         case GeneratorTemplate.interpolation =>
           allColumns.map(c => 4.indent + c.name + " = \\${m." + c.nameInScala + "}").mkString(comma + eol)
@@ -550,9 +550,9 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
       }
 
       val wherePart = config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL =>
+        case GeneratorTemplate.basic =>
           4.indent + pkColumns.map(pk => pk.name + " = ?").mkString(" AND ")
-        case GeneratorTemplate.executable | GeneratorTemplate.executableSQL =>
+        case GeneratorTemplate.executable =>
           4.indent + pkColumns.map(pk => pk.name + " = /*'" + pk.nameInScala + "*/" + pk.dummyValue).mkString(" AND ")
         case GeneratorTemplate.interpolation =>
           4.indent + pkColumns.map(pk => pk.name + " = \\${m." + pk.nameInScala + "}").mkString(" AND ")
@@ -561,7 +561,7 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
       }
 
       val bindingPart = config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL =>
+        case GeneratorTemplate.basic =>
           3.indent + ".bind(" + eol +
             allColumns.map(c => 4.indent + "m." + c.nameInScala).mkString(comma + eol) + ", " + eol +
             pkColumns.map(pk => 4.indent + "m." + pk.nameInScala).mkString(comma + eol) + eol +
@@ -622,9 +622,9 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
     val deleteMethod = {
 
       val wherePart: String = config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL =>
+        case GeneratorTemplate.basic =>
           pkColumns.map(pk => pk.name + " = ?").mkString(" AND ")
-        case GeneratorTemplate.executable | GeneratorTemplate.executableSQL =>
+        case GeneratorTemplate.executable =>
           pkColumns.map(pk => pk.name + " = /*'" + pk.nameInScala + "*/" + pk.dummyValue).mkString(" AND ")
         case GeneratorTemplate.interpolation =>
           pkColumns.map(pk => pk.name + " = \\${m." + pk.nameInScala + "}").mkString(" AND ")
@@ -633,7 +633,7 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
       }
 
       val bindingPart: String = config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL =>
+        case GeneratorTemplate.basic =>
           ".bind(" + pkColumns.map(pk => "m." + pk.nameInScala).mkString(", ") + ")"
         case GeneratorTemplate.interpolation => ""
         case _ =>
@@ -673,9 +673,9 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
     val findMethod = {
       val argsPart = pkColumns.map(pk => pk.nameInScala + ": " + pk.typeInScala).mkString(", ")
       val wherePart = (config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL =>
+        case GeneratorTemplate.basic =>
           pkColumns.map(pk => pk.name + " = ?").mkString(" AND ")
-        case GeneratorTemplate.executable | GeneratorTemplate.executableSQL =>
+        case GeneratorTemplate.executable =>
           pkColumns.map(pk => pk.name + " = /*'" + pk.nameInScala + "*/" + pk.dummyValue).mkString(" AND ")
         case GeneratorTemplate.interpolation =>
           pkColumns.map(pk => pk.name + " = \\${" + pk.nameInScala + "}").mkString(" AND ")
@@ -683,7 +683,7 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
           pkColumns.map(pk => pk.name + " = {" + pk.nameInScala + "}").mkString(" AND ")
       })
       val bindingPart = (config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL =>
+        case GeneratorTemplate.basic =>
           ".bind(" + pkColumns.map(pk => pk.nameInScala).mkString(", ")
         case GeneratorTemplate.interpolation => ""
         case _ =>
@@ -779,11 +779,11 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
      */
     val findAllByMethod = {
       val paramsPart = (config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL => "params: Any*"
+        case GeneratorTemplate.basic => "params: Any*"
         case _ => "params: (Symbol, Any)*"
       })
       val bindingPart = (config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL => ".bind"
+        case GeneratorTemplate.basic => ".bind"
         case _ => ".bindByName"
       }) + "(params: _*)"
 
@@ -822,11 +822,11 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
      */
     val countByMethod = {
       val paramsPart = (config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL => "params: Any*"
+        case GeneratorTemplate.basic => "params: Any*"
         case _ => "params: (Symbol, Any)*"
       })
       val bindingPart = (config.template match {
-        case GeneratorTemplate.basic | GeneratorTemplate.placeHolderSQL => ".bind"
+        case GeneratorTemplate.basic => ".bind"
         case _ => ".bindByName"
       }) + "(params: _*)"
 
