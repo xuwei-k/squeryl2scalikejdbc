@@ -251,107 +251,6 @@ class CodeGenerator(
 
     /**
      * {{{
-     * def create(name: String, birthday: Option[LocalDate])(implicit session: DBSession = autoSession): Member = {
-     *   val generatedKey = SQL("""
-     *     insert into member (
-     *       NAME,
-     *       BIRTHDAY
-     *     ) VALUES (
-     *       /*'name*/'abc',
-     *       /*'birthday*/'1958-09-06'
-     *     )
-     *   """).bindByName(
-     *     'name -> name,
-     *     'birthday -> birthday
-     *   ).updateAndReturnGeneratedKey.apply()
-     *
-     *   Member(
-     *     id = generatedKey,
-     *     name = name,
-     *     birthday = birthday
-     *   )
-     * }
-     * }}}
-     */
-    val createMethod = {
-      val createColumns: List[Column] = allColumns.filterNot {
-        c => table.autoIncrementColumns.exists(_.name == c.name)
-      }
-
-      val placeHolderPart: String = config.template match {
-        case GeneratorTemplate.basic =>
-          (1 to createColumns.size).map(c => 4.indent + "?").mkString(comma + eol)
-        case GeneratorTemplate.executable =>
-          createColumns.map(c => 4.indent + "/*'" + c.nameInScala + "*/" + c.dummyValue).mkString(comma + eol)
-        case GeneratorTemplate.interpolation if createColumns.size <= 22 =>
-          createColumns.map(c => 4.indent + "${" + c.nameInScala + "}").mkString(comma + eol)
-        case GeneratorTemplate.namedParameters =>
-          createColumns.map(c => 4.indent + "{" + c.nameInScala + "}").mkString(comma + eol)
-      }
-
-      val bindingPart: String = config.template match {
-        case GeneratorTemplate.basic =>
-          3.indent + ".bind(" + eol +
-            createColumns.map(c => 4.indent + c.nameInScala).mkString(comma + eol)
-        case GeneratorTemplate.interpolation if createColumns.size <= 22 => ""
-        case _ =>
-          3.indent + ".bindByName(" + eol +
-            createColumns.map {
-              c => 4.indent + "'" + c.nameInScala + " -> " + c.nameInScala
-            }.mkString(comma + eol)
-      }
-
-      1.indent + "def create(" + eol +
-        createColumns.map {
-          c => 2.indent + c.nameInScala + ": " + c.typeInScala + (if (c.isNotNull) "" else " = None")
-        }.mkString(comma + eol) + ")(implicit session: DBSession = autoSession): " + className + " = {" + eol +
-        2.indent + table.autoIncrementColumns.headOption.map(_ => "val generatedKey = ").getOrElse("") +
-        (config.template match {
-          case GeneratorTemplate.interpolation => "sql\"\"\""
-          case _ => "SQL(\"\"\""
-        }) + eol +
-        3.indent + "insert into " +
-        (config.template match {
-          case GeneratorTemplate.interpolation => "${" + className + ".table}"
-          case _ => table.name
-        }) + " (" + eol +
-        createColumns.map(c => 4.indent + c.name).mkString(comma + eol) + eol +
-        3.indent + ") VALUES (" + eol +
-        placeHolderPart + eol +
-        3.indent + ")" + eol +
-        (config.template match {
-          case GeneratorTemplate.interpolation =>
-            3.indent + "\"\"\"" + table.autoIncrementColumns.headOption.map(_ => ".updateAndReturnGeneratedKey.apply()").getOrElse(".update.apply()")
-          case _ =>
-            3.indent + "\"\"\")" + eol +
-              bindingPart + eol +
-              3.indent + table.autoIncrementColumns.headOption.map(_ => ").updateAndReturnGeneratedKey.apply()").getOrElse(").update.apply()")
-        }) +
-        eol +
-        eol +
-        2.indent + (if (allColumns.size > 22) "new " else "") + className + "(" + eol +
-        table.autoIncrementColumns.headOption.map {
-          c =>
-            3.indent + c.nameInScala +
-              (c.typeInScala match {
-                case TypeName.Byte => " = generatedKey.toByte, "
-                case TypeName.Int => " = generatedKey.toInt, "
-                case TypeName.Short => " = generatedKey.toShort, "
-                case TypeName.Float => " = generatedKey.toFloat, "
-                case TypeName.Double => " = generatedKey.toDouble, "
-                case TypeName.String => " = generatedKey.toString, "
-                case TypeName.BigDecimal => " = BigDecimal.valueOf(generatedKey), "
-                case _ => " = generatedKey, "
-              }) + eol
-        }.getOrElse("") +
-        createColumns.map {
-          c => 3.indent + c.nameInScala + " = " + c.nameInScala
-        }.mkString(comma + eol) + ")" + eol +
-        1.indent + "}" + eol
-    }
-
-    /**
-     * {{{
      * def findAllBy(where: String, params:(Symbol, Any)*): List[Member] = {
      *   DB readOnly { implicit session =>
      *     SQL("""select * from member """ + where)
@@ -453,8 +352,6 @@ class CodeGenerator(
       (if (isInterpolation) interpolationFindAllByMethod else findAllByMethod) +
       eol +
       (if (isInterpolation) interpolationCountByMethod else countByMethod) +
-      eol +
-      createMethod +
       eol +
       "}"
   }
