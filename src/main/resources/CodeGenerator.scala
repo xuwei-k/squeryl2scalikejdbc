@@ -352,59 +352,6 @@ class CodeGenerator(
 
     /**
      * {{{
-     * def find(id: Long): Option[Member] = {
-     *   DB readOnly { implicit session =>
-     *     SQL("""select * from member where id = /*'id*/123""")
-     *       .bindByName('id -> id).map(*).single.apply()
-     *   }
-     * }
-     * }}}
-     */
-    val findMethod = {
-      val argsPart = pkColumns.map(pk => pk.nameInScala + ": " + pk.typeInScala).mkString(", ")
-      val wherePart = (config.template match {
-        case GeneratorTemplate.basic =>
-          pkColumns.map(pk => pk.name + " = ?").mkString(" AND ")
-        case GeneratorTemplate.executable =>
-          pkColumns.map(pk => pk.name + " = /*'" + pk.nameInScala + "*/" + pk.dummyValue).mkString(" AND ")
-        case GeneratorTemplate.interpolation =>
-          pkColumns.map(pk => pk.name + " = \\${" + pk.nameInScala + "}").mkString(" AND ")
-        case _ =>
-          pkColumns.map(pk => pk.name + " = {" + pk.nameInScala + "}").mkString(" AND ")
-      })
-      val bindingPart = (config.template match {
-        case GeneratorTemplate.basic =>
-          ".bind(" + pkColumns.map(pk => pk.nameInScala).mkString(", ")
-        case GeneratorTemplate.interpolation => ""
-        case _ =>
-          ".bindByName(" + pkColumns.map(pk => "'" + pk.nameInScala + " -> " + pk.nameInScala).mkString(", ")
-      }) + ")"
-
-      (config.template match {
-        case GeneratorTemplate.interpolation =>
-          """  def find(%argsPart%)(implicit session: DBSession = autoSession): Option[%className%] = {
-            |    sql%3quotes%select ${%syntaxName%.result.*} from ${%className% as %syntaxName%} where %wherePart%%3quotes%
-            |      .map(%className%(%syntaxName%.resultName)).single.apply()
-            |  }
-          """
-        case _ =>
-          """  def find(%argsPart%)(implicit session: DBSession = autoSession): Option[%className%] = {
-            |    SQL(%3quotes%select * from %tableName% where %wherePart%%3quotes%)
-            |      %bindingPart%.map(*).single.apply()
-            |  }
-          """
-      }).stripMargin
-        .replaceAll("%3quotes%", "\"\"\"")
-        .replaceAll("%argsPart%", argsPart)
-        .replaceAll("%className%", className)
-        .replaceAll("%syntaxName%", syntaxName)
-        .replaceAll("%tableName%", table.name)
-        .replaceAll("%wherePart%", wherePart)
-        .replaceAll("%bindingPart%", bindingPart)
-    }
-
-    /**
-     * {{{
      * def findAllBy(where: String, params:(Symbol, Any)*): List[Member] = {
      *   DB readOnly { implicit session =>
      *     SQL("""select * from member """ + where)
@@ -502,8 +449,6 @@ class CodeGenerator(
       (if (isInterpolation) "" else joinedMapper + eol) +
       (if (isInterpolation) 1.indent + "val " + syntaxName + " = " + className + ".syntax(\"" + syntaxName + "\")" + eol + eol else "") +
       autoSession +
-      eol +
-      findMethod +
       eol +
       (if (isInterpolation) interpolationFindAllByMethod else findAllByMethod) +
       eol +
