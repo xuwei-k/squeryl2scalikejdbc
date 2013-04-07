@@ -6,7 +6,7 @@ import java.sql.Timestamp
 
 object schema extends Schema{
 
-  val users = table[User]("users")
+//  val users = table[User]("users")
 
 }
 

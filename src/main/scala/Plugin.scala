@@ -30,7 +30,8 @@ object Plugin extends sbt.Plugin{
     libraryDependencies <++= Squeryl2scalikejdbcKeys.dependencies,
     sourceGenerators in Compile <+= (sourceManaged in Compile){ dir => task{
       Seq(
-        "CodeGenerator", "Column", "GeneratorConfig", "Main", "Table"
+        "CodeGenerator", "Column", "GeneratorConfig", "Main", "Table", "Spec", "ColumnInScala",
+        "TypeName"
       ).map("/" + _ + ".scala").map{ src =>
         val in = this.getClass.getResourceAsStream(src)
         val f = dir / ("squeryl2scalikejdbc" + src)

@@ -15,7 +15,19 @@
  */
 package squeryl2scalikejdbc
 
+import java.io.File
+
 object CodeGenerator{
+
+  implicit def convertColumnToColumnInScala(column: Column): ColumnInScala = ColumnInScala(column)
+
+  /**
+   * Create directory to put the source code file if it does not exist yet.
+   */
+  def mkdirRecursively(file: File): Unit = {
+    if (!file.getParentFile.exists) mkdirRecursively(file.getParentFile)
+    if (!file.exists) file.mkdir()
+  }
 
   def toCamelCase(s: String): String = s.split("_").toList.foldLeft("") {
     (camelCaseString, part) =>
@@ -38,7 +50,6 @@ object CodeGenerator{
       }
     }
   }
-
 }
 
 /**
@@ -47,7 +58,7 @@ object CodeGenerator{
 class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(implicit config: GeneratorConfig = GeneratorConfig()) {
 
   import java.sql.{ Types => JavaSqlTypes }
-  import java.io.{ OutputStreamWriter, FileOutputStream, File }
+  import java.io.{ OutputStreamWriter, FileOutputStream}
   import CodeGenerator._
 
   private[this] val packageName = config.packageName
@@ -56,142 +67,11 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
   private[this] val comma = ","
   private[this] val eol = config.lineBreak.value
 
-  object TypeName {
-    val Any = "Any"
-    val AnyArray = "Array[Any]"
-    val ByteArray = "Array[Byte]"
-    val Long = "Long"
-    val Boolean = "Boolean"
-    val DateTime = "DateTime"
-    val LocalDate = "LocalDate"
-    val LocalTime = "LocalTime"
-    val String = "String"
-    val Byte = "Byte"
-    val Int = "Int"
-    val Short = "Short"
-    val Float = "Float"
-    val Double = "Double"
-    val Blob = "Blob"
-    val Clob = "Clob"
-    val Ref = "Ref"
-    val Struct = "Struct"
-    val BigDecimal = "BigDecimal" // scala.math.BigDecimal
-  }
-
   case class IndentGenerator(i: Int) {
     def indent: String = " " * i * 2
   }
 
   implicit def convertIntToIndentGenerator(i: Int) = IndentGenerator(i)
-
-  case class ColumnInScala(underlying: Column) {
-
-    lazy val nameInScala: String = {
-      val camelCase: String = toCamelCase(underlying.name)
-      camelCase.head.toLower + camelCase.tail
-    }
-
-    lazy val typeInScala: String = {
-      if (underlying.isNotNull) underlying.rawTypeInScala
-      else "Option[" + underlying.rawTypeInScala + "]"
-    }
-
-    lazy val extractorName: String = underlying.dataType match {
-      case JavaSqlTypes.ARRAY => "array"
-      case JavaSqlTypes.BIGINT => "long"
-      case JavaSqlTypes.BINARY => "bytes"
-      case JavaSqlTypes.BIT => "boolean"
-      case JavaSqlTypes.BLOB => "blob"
-      case JavaSqlTypes.BOOLEAN => "boolean"
-      case JavaSqlTypes.CHAR => "string"
-      case JavaSqlTypes.CLOB => "clob"
-      case JavaSqlTypes.DATALINK => "any"
-      case JavaSqlTypes.DATE => "date"
-      case JavaSqlTypes.DECIMAL => "bigDecimal"
-      case JavaSqlTypes.DISTINCT => "any"
-      case JavaSqlTypes.DOUBLE => "double"
-      case JavaSqlTypes.FLOAT => "float"
-      case JavaSqlTypes.INTEGER => "int"
-      case JavaSqlTypes.JAVA_OBJECT => "any"
-      case JavaSqlTypes.LONGVARBINARY => "bytes"
-      case JavaSqlTypes.LONGVARCHAR => "string"
-      case JavaSqlTypes.NULL => "any"
-      case JavaSqlTypes.NUMERIC => "bigDecimal"
-      case JavaSqlTypes.OTHER => "any"
-      case JavaSqlTypes.REAL => "float"
-      case JavaSqlTypes.REF => "ref"
-      case JavaSqlTypes.SMALLINT => "short"
-      case JavaSqlTypes.STRUCT => "any"
-      case JavaSqlTypes.TIME => "time"
-      case JavaSqlTypes.TIMESTAMP => "timestamp"
-      case JavaSqlTypes.TINYINT => "byte"
-      case JavaSqlTypes.VARBINARY => "bytes"
-      case JavaSqlTypes.VARCHAR => "string"
-      case _ => "any"
-    }
-
-    lazy val dummyValue: String = underlying.dataType match {
-      case JavaSqlTypes.ARRAY => "null"
-      case JavaSqlTypes.BIGINT => "1"
-      case JavaSqlTypes.BINARY => "1"
-      case JavaSqlTypes.BIT => "false"
-      case JavaSqlTypes.BLOB => "null"
-      case JavaSqlTypes.BOOLEAN => "true"
-      case JavaSqlTypes.CHAR => "'abc'"
-      case JavaSqlTypes.CLOB => "null"
-      case JavaSqlTypes.DATALINK => "null"
-      case JavaSqlTypes.DATE => "'1958-09-06'"
-      case JavaSqlTypes.DECIMAL => "1"
-      case JavaSqlTypes.DISTINCT => "null"
-      case JavaSqlTypes.DOUBLE => "0.1"
-      case JavaSqlTypes.FLOAT => "0.1"
-      case JavaSqlTypes.INTEGER => "1"
-      case JavaSqlTypes.JAVA_OBJECT => "null"
-      case JavaSqlTypes.LONGVARBINARY => "null"
-      case JavaSqlTypes.LONGVARCHAR => "'abc'"
-      case JavaSqlTypes.NULL => "null"
-      case JavaSqlTypes.NUMERIC => "1"
-      case JavaSqlTypes.OTHER => "null"
-      case JavaSqlTypes.REAL => "null"
-      case JavaSqlTypes.REF => "null"
-      case JavaSqlTypes.SMALLINT => "1"
-      case JavaSqlTypes.STRUCT => "null"
-      case JavaSqlTypes.TIME => "'12:00:00'"
-      case JavaSqlTypes.TIMESTAMP => "'1958-09-06 12:00:00'"
-      case JavaSqlTypes.TINYINT => "1"
-      case JavaSqlTypes.VARBINARY => "null"
-      case JavaSqlTypes.VARCHAR => "'abc'"
-      case _ => "null"
-    }
-
-    lazy val defaultValueInScala: String = underlying.typeInScala match {
-      case TypeName.AnyArray => "Array[Any]()"
-      case TypeName.Long => "1L"
-      case TypeName.ByteArray => "Array[Byte]()"
-      case TypeName.Boolean => "false"
-      case TypeName.String => "\"MyString\""
-      case TypeName.LocalDate => "LocalTime.now"
-      case TypeName.BigDecimal => "new java.math.BigDecimal(\"1\")"
-      case TypeName.Double => "0.1D"
-      case TypeName.Float => "0.1F"
-      case TypeName.Int => "123"
-      case TypeName.Short => "123"
-      case TypeName.DateTime => "DateTime.now"
-      case TypeName.Byte => "1"
-      case _ => "null"
-    }
-
-  }
-
-  /**
-   * Create directory to put the source code file if it does not exist yet.
-   */
-  def mkdirRecursively(file: File): Unit = {
-    if (!file.getParentFile.exists) mkdirRecursively(file.getParentFile)
-    if (!file.exists) file.mkdir()
-  }
-
-  implicit def convertColumnToColumnInScala(column: Column): ColumnInScala = ColumnInScala(column)
 
   /**
    * Write the source code to file.
@@ -943,221 +823,7 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
 
   private def toClassName(table: Table): String = toCamelCase(table.name)
 
-
-  // -----------------------
-  // Spec
-  // -----------------------
-
-  def writeSpecIfNotExist(code: Option[String]): Unit = {
-    val file = new File(config.testDir + "/" + packageName.replaceAll("\\.", "/") + "/" + className + "Spec.scala")
-    if (file.exists) {
-      println("\"" + packageName + "." + className + "Spec\"" + " already exists.")
-    } else {
-      code.map { code =>
-        mkdirRecursively(file.getParentFile)
-        using(new FileOutputStream(file)) {
-          fos =>
-            using(new OutputStreamWriter(fos)) {
-              writer =>
-                writer.write(code)
-                println("\"" + packageName + "." + className + "Spec\"" + " created.")
-            }
-        }
-      }
-    }
-  }
-
-  def specAll(): Option[String] = config.testTemplate match {
-    case GeneratorTestTemplate.ScalaTestFlatSpec =>
-      Some(replaceVariablesForTestPart(
-        """package %package%
-          |
-          |import org.scalatest._
-          |import org.joda.time._
-          |import scalikejdbc.scalatest.AutoRollback
-          |%interpolationImport%
-          |
-          |class %className%Spec extends fixture.FlatSpec with ShouldMatchers with AutoRollback {
-          |
-          |  behavior of "%className%"
-          |
-          |  it should "find by primary keys" in { implicit session =>
-          |    val maybeFound = %className%.find(%primaryKeys%)
-          |    maybeFound.isDefined should be(true)
-          |  }
-          |  it should "find all records" in { implicit session =>
-          |    val allResults = %className%.findAll()
-          |    allResults.size should be >(0)
-          |  }
-          |  it should "count all records" in { implicit session =>
-          |    val count = %className%.countAll()
-          |    count should be >(0L)
-          |  }
-          |  it should "find by where clauses" in { implicit session =>
-          |    val results = %className%.findAllBy(%whereExample%)
-          |    results.size should be >(0)
-          |  }
-          |  it should "count by where clauses" in { implicit session =>
-          |    val count = %className%.countBy(%whereExample%)
-          |    count should be >(0L)
-          |  }
-          |  it should "create new record" in { implicit session =>
-          |    val created = %className%.create(%createFields%)
-          |    created should not be(null)
-          |  }
-          |  it should "update a record" in { implicit session =>
-          |    val entity = %className%.findAll().head
-          |    val updated = %className%.update(entity)
-          |    updated should not equal(entity)
-          |  }
-          |  it should "delete a record" in { implicit session =>
-          |    val entity = %className%.findAll().head
-          |    %className%.delete(entity)
-          |    val shouldBeNone = %className%.find(%primaryKeys%)
-          |    shouldBeNone.isDefined should be(false)
-          |  }
-          |
-          |}
-        """.stripMargin))
-    case GeneratorTestTemplate.specs2unit =>
-      Some(replaceVariablesForTestPart(
-        """package %package%
-          |
-          |import scalikejdbc.specs2.mutable.AutoRollback
-          |import org.specs2.mutable._
-          |import org.joda.time._
-          |%interpolationImport%
-          |
-          |class %className%Spec extends Specification {
-          |
-          |  "%className%" should {
-          |    "find by primary keys" in new AutoRollback {
-          |      val maybeFound = %className%.find(%primaryKeys%)
-          |      maybeFound.isDefined should beTrue
-          |    }
-          |    "find all records" in new AutoRollback {
-          |      val allResults = %className%.findAll()
-          |      allResults.size should be_>(0)
-          |    }
-          |    "count all records" in new AutoRollback {
-          |      val count = %className%.countAll()
-          |      count should be_>(0L)
-          |    }
-          |    "find by where clauses" in new AutoRollback {
-          |      val results = %className%.findAllBy(%whereExample%)
-          |      results.size should be_>(0)
-          |    }
-          |    "count by where clauses" in new AutoRollback {
-          |      val count = %className%.countBy(%whereExample%)
-          |      count should be_>(0L)
-          |    }
-          |    "create new record" in new AutoRollback {
-          |      val created = %className%.create(%createFields%)
-          |      created should not beNull
-          |    }
-          |    "update a record" in new AutoRollback {
-          |      val entity = %className%.findAll().head
-          |      val updated = %className%.update(entity)
-          |      updated should not equalTo(entity)
-          |    }
-          |    "delete a record" in new AutoRollback {
-          |      val entity = %className%.findAll().head
-          |      %className%.delete(entity)
-          |      val shouldBeNone = %className%.find(%primaryKeys%)
-          |      shouldBeNone.isDefined should beFalse
-          |    }
-          |  }
-          |
-          |}
-        """.stripMargin))
-    case GeneratorTestTemplate.specs2acceptance =>
-      Some(replaceVariablesForTestPart(
-        """package %package%
-          |
-          |import scalikejdbc.specs2.AutoRollback
-          |import org.specs2._
-          |import org.joda.time._
-          |%interpolationImport%
-          |
-          |class %className%Spec extends Specification { def is =
-          |
-          |  "The '%className%' model should" ^
-          |    "find by primary keys"         ! autoRollback().findByPrimaryKeys ^
-          |    "find all records"             ! autoRollback().findAll ^
-          |    "count all records"            ! autoRollback().countAll ^
-          |    "find by where clauses"        ! autoRollback().findAllBy ^
-          |    "count by where clauses"       ! autoRollback().countBy ^
-          |    "create new record"            ! autoRollback().create ^
-          |    "update a record"              ! autoRollback().update ^
-          |    "delete a record"              ! autoRollback().delete ^
-          |                                   end
-          |
-          |  case class autoRollback() extends AutoRollback {
-          |
-          |    def findByPrimaryKeys = this {
-          |      val maybeFound = %className%.find(%primaryKeys%)
-          |      maybeFound.isDefined should beTrue
-          |    }
-          |    def findAll = this {
-          |      val allResults = %className%.findAll()
-          |      allResults.size should be_>(0)
-          |    }
-          |    def countAll = this {
-          |      val count = %className%.countAll()
-          |      count should be_>(0L)
-          |    }
-          |    def findAllBy = this {
-          |      val results = %className%.findAllBy(%whereExample%)
-          |      results.size should be_>(0)
-          |    }
-          |    def countBy = this {
-          |      val count = %className%.countBy(%whereExample%)
-          |      count should be_>(0L)
-          |    }
-          |    def create = this {
-          |      val created = %className%.create(%createFields%)
-          |      created should not beNull
-          |    }
-          |    def update = this {
-          |      val entity = %className%.findAll().head
-          |      val updated = %className%.update(entity)
-          |      updated should not equalTo(entity)
-          |    }
-          |    def delete = this {
-          |      val entity = %className%.findAll().head
-          |      %className%.delete(entity)
-          |      val shouldBeNone = %className%.find(%primaryKeys%)
-          |      shouldBeNone.isDefined should beFalse
-          |    }
-          |  }
-          |
-          |}
-        """.stripMargin))
-    case GeneratorTestTemplate(name) => None
-  }
-
-  private def replaceVariablesForTestPart(code: String): String = {
-    val isInterpolation = config.template == GeneratorTemplate.interpolation
-    code.replaceAll("%package%", packageName)
-      .replaceAll("%className%", className)
-      .replaceFirst("%interpolationImport%", if (isInterpolation) "import scalikejdbc.SQLInterpolation._" else "")
-      .replaceAll("%primaryKeys%", table.primaryKeyColumns.map {
-        c => c.defaultValueInScala
-      }.mkString(", "))
-      .replaceAll("%whereExample%",
-        if (isInterpolation) table.primaryKeyColumns.headOption.map(c =>
-          "sqls\"" + c.name + " = \\${" + c.defaultValueInScala + "}\"").getOrElse("")
-        else table.primaryKeyColumns.headOption.map(c =>
-          "\"" + c.name + " = {" + c.nameInScala + "}\", '" + c.nameInScala + " -> " + c.defaultValueInScala).getOrElse("")
-      )
-      .replaceAll("%createFields%", table.allColumns.filter {
-        c =>
-          c.isNotNull && table.autoIncrementColumns.find(aic => aic.name == c.name).isEmpty
-      }.map {
-        c =>
-          c.nameInScala + " = " + c.defaultValueInScala
-      }.mkString(", "))
-  }
-
+  def specAll(): Option[String] =
+    new Spec(table, packageName, className, config).specAll()
 }
 
