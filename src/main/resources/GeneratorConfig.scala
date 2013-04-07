@@ -18,28 +18,29 @@ package squeryl2scalikejdbc
 case class GeneratorConfig(srcDir: String = "src/main/scala",
   testDir: String = "src/test/scala",
   packageName: String = "models",
-  template: GeneratorTemplate = GeneratorTemplate("executableSQL"),
-  testTemplate: GeneratorTestTemplate = GeneratorTestTemplate(""),
+  template: GeneratorTemplate = GeneratorTemplate.interpolation,
+  testTemplate: Option[GeneratorTestTemplate] = None,
   lineBreak: LineBreak = LineBreak("\n"),
   encoding: String = "UTF-8")
 
 object GeneratorTemplate {
 
-  val basic = GeneratorTemplate("basic")
-  val namedParameters = GeneratorTemplate("namedParameters")
-  val executable = GeneratorTemplate("executable")
-  val interpolation = GeneratorTemplate("interpolation")
+  case object basic extends GeneratorTemplate("basic")
+  case object namedParameters extends GeneratorTemplate("namedParameters")
+  case object executable extends GeneratorTemplate("executable")
+  case object interpolation extends GeneratorTemplate("interpolation")
 
 }
 
-case class GeneratorTemplate(name: String)
+sealed abstract class GeneratorTemplate(name: String)
 
 object GeneratorTestTemplate {
-  val ScalaTestFlatSpec = GeneratorTestTemplate("ScalaTestFlatSpec")
-  val specs2unit = GeneratorTestTemplate("specs2unit")
-  val specs2acceptance = GeneratorTestTemplate("specs2acceptance")
+  case object ScalaTestFlatSpec extends GeneratorTestTemplate("ScalaTestFlatSpec")
+  case object specs2unit extends GeneratorTestTemplate("specs2unit")
+  case object specs2acceptance extends GeneratorTestTemplate("specs2acceptance")
 }
-case class GeneratorTestTemplate(name: String)
+
+sealed abstract class GeneratorTestTemplate(name: String)
 
 object LineBreak {
   def value(name: String) = name match {

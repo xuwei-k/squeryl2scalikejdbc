@@ -39,9 +39,9 @@ class Spec(table: Table, packageName: String, className: String, config: Generat
     }
   }
 
-  def specAll(): Option[String] = config.testTemplate match {
+  def specAll(): Option[String] = config.testTemplate map {
     case GeneratorTestTemplate.ScalaTestFlatSpec =>
-      Some(replaceVariablesForTestPart(
+      replaceVariablesForTestPart(
         """package %package%
           |
           |import org.scalatest._
@@ -90,9 +90,9 @@ class Spec(table: Table, packageName: String, className: String, config: Generat
           |  }
           |
           |}
-        """.stripMargin))
+        """.stripMargin)
     case GeneratorTestTemplate.specs2unit =>
-      Some(replaceVariablesForTestPart(
+      replaceVariablesForTestPart(
         """package %package%
           |
           |import scalikejdbc.specs2.mutable.AutoRollback
@@ -141,9 +141,9 @@ class Spec(table: Table, packageName: String, className: String, config: Generat
           |  }
           |
           |}
-        """.stripMargin))
+        """.stripMargin)
     case GeneratorTestTemplate.specs2acceptance =>
-      Some(replaceVariablesForTestPart(
+      replaceVariablesForTestPart(
         """package %package%
           |
           |import scalikejdbc.specs2.AutoRollback
@@ -204,8 +204,7 @@ class Spec(table: Table, packageName: String, className: String, config: Generat
           |  }
           |
           |}
-        """.stripMargin))
-    case GeneratorTestTemplate(name) => None
+        """.stripMargin)
   }
 
   private def replaceVariablesForTestPart(code: String): String = {

@@ -1,4 +1,4 @@
-Squeryl2scalikejdbcKeys.squerylVersion := "0.9.5-6"
+libraryDependencies += "org.squeryl" %% "squeryl" % "0.9.5-6"
 
 Squeryl2scalikejdbcKeys.scalikejdbcVersion := "1.5.2"
 

@@ -4,8 +4,3 @@
 > squeryl2scalikejdbc
 #$ exists src/main/scala/users.scala
 > compile
-> clean
-> ++ 2.9.2
-> squeryl2scalikejdbc
-> compile
-
