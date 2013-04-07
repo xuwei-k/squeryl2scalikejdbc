@@ -16,6 +16,7 @@
 package squeryl2scalikejdbc
 
 import java.io.File
+import java.sql.{ Types => JavaSqlTypes }
 
 object CodeGenerator{
 
@@ -50,6 +51,22 @@ object CodeGenerator{
       }
     }
   }
+
+  private def cast(column: Column, optional: Boolean): String = column.dataType match {
+    case JavaSqlTypes.DATE if optional => ".map(_.toLocalDate)"
+    case JavaSqlTypes.DATE => ".toLocalDate"
+    case JavaSqlTypes.DECIMAL if optional => ".map(_.toScalaBigDecimal)"
+    case JavaSqlTypes.DECIMAL => ".toScalaBigDecimal"
+    case JavaSqlTypes.NUMERIC if optional => ".map(_.toScalaBigDecimal)"
+    case JavaSqlTypes.NUMERIC => ".toScalaBigDecimal"
+    case JavaSqlTypes.TIME if optional => ".map(_.toLocalTime)"
+    case JavaSqlTypes.TIME => ".toLocalTime"
+    case JavaSqlTypes.TIMESTAMP if optional => ".map(_.toDateTime)"
+    case JavaSqlTypes.TIMESTAMP => ".toDateTime"
+    case _ => ""
+  }
+
+  private def toClassName(table: Table): String = toCamelCase(table.name)
 }
 
 /**
@@ -57,7 +74,6 @@ object CodeGenerator{
  */
 class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(implicit config: GeneratorConfig = GeneratorConfig()) {
 
-  import java.sql.{ Types => JavaSqlTypes }
   import java.io.{ OutputStreamWriter, FileOutputStream}
   import CodeGenerator._
 
@@ -90,61 +106,6 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
               println("\"" + packageName + "." + className + "\"" + " created.")
           }
       }
-    }
-  }
-
-  /**
-   * Class part.
-   *
-   * {{{
-   * case class Member(id: Long, name: String, description: Option[String])) {
-   *   def save(): Member = Member.update(this)
-   *   def destroy(): Unit = Member.delete(this)
-   * }
-   * }}}
-   */
-  def classPart: String = {
-    if (table.allColumns.size <= 22) {
-      """case class %className%(
-        |%constructorArgs%) {
-        |
-        |  def save()(implicit session: DBSession = %className%.autoSession): %className% = %className%.update(this)(session)
-        |
-        |  def destroy()(implicit session: DBSession = %className%.autoSession): Unit = %className%.delete(this)(session)
-        |
-        |}
-      """.stripMargin
-        .replaceAll("%className%", className)
-        .replaceFirst("%constructorArgs%", table.allColumns.map {
-          c => 1.indent + c.nameInScala + ": " + c.typeInScala + (if (c.isNotNull) "" else " = None")
-        }.mkString(", " + eol))
-
-    } else {
-      """class %className%(
-        |%constructorArgs1%) {
-        |
-        |  def copy(
-        |%copyArgs%): %className% = {
-        |    new %className%(
-        |%constructorArgs3%)
-        |  }
-        |
-        |  def save()(implicit session: DBSession = %className%.autoSession): %className% = %className%.update(this)(session)
-        |
-        |  def destroy()(implicit session: DBSession = %className%.autoSession): Unit = %className%.delete(this)(session)
-        |
-        |}
-      """.stripMargin
-        .replaceAll("%className%", className)
-        .replaceFirst("%constructorArgs1%", table.allColumns.map {
-          c => 1.indent + "val " + c.nameInScala + ": " + c.typeInScala + (if (c.isNotNull) "" else " = None")
-        }.mkString(comma + eol))
-        .replaceFirst("%copyArgs%", table.allColumns.map {
-          c => 2.indent + c.nameInScala + ": " + c.typeInScala + " = this." + c.nameInScala
-        }.mkString(comma + eol))
-        .replaceFirst("%constructorArgs3%", table.allColumns.map {
-          c => 3.indent + c.nameInScala + " = " + c.nameInScala
-        }.mkString(comma + eol))
     }
   }
 
@@ -802,26 +763,8 @@ class CodeGenerator(table: Table, specifiedClassName: Option[String] = None)(imp
       jodaTimeImport +
       javaSqlImport +
       eol +
-      classPart + eol +
-      eol +
       objectPart + eol
   }
-
-  private def cast(column: Column, optional: Boolean): String = column.dataType match {
-    case JavaSqlTypes.DATE if optional => ".map(_.toLocalDate)"
-    case JavaSqlTypes.DATE => ".toLocalDate"
-    case JavaSqlTypes.DECIMAL if optional => ".map(_.toScalaBigDecimal)"
-    case JavaSqlTypes.DECIMAL => ".toScalaBigDecimal"
-    case JavaSqlTypes.NUMERIC if optional => ".map(_.toScalaBigDecimal)"
-    case JavaSqlTypes.NUMERIC => ".toScalaBigDecimal"
-    case JavaSqlTypes.TIME if optional => ".map(_.toLocalTime)"
-    case JavaSqlTypes.TIME => ".toLocalTime"
-    case JavaSqlTypes.TIMESTAMP if optional => ".map(_.toDateTime)"
-    case JavaSqlTypes.TIMESTAMP => ".toDateTime"
-    case _ => ""
-  }
-
-  private def toClassName(table: Table): String = toCamelCase(table.name)
 
   def specAll(): Option[String] =
     new Spec(table, packageName, className, config).specAll()
