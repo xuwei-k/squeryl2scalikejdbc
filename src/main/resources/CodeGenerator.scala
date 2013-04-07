@@ -283,12 +283,13 @@ class CodeGenerator(
 
     val interpolationFindAllByMethod = {
       """  def findAllBy(where: SQLSyntax)(implicit session: DBSession = autoSession): List[%className%] = {
-        |    sql%3quotes%select ${%syntaxName%.result.*} from ${%className% as %syntaxName%} where ${where}%3quotes%
-        |      .map(%className%(%syntaxName%.resultName)).list.apply()
+        |    sql%3quotes%select ${%syntaxName%.result.*} from ${%objectName% as %syntaxName%} where ${where}%3quotes%
+        |      .map(this.apply(%syntaxName%.resultName)).list.apply()
         |  }
       """.stripMargin
         .replaceAll("%3quotes%", "\"\"\"")
         .replaceAll("%className%", className)
+        .replaceAll("%objectName%", objectName)
         .replaceAll("%syntaxName%", syntaxName)
     }
 
@@ -326,12 +327,13 @@ class CodeGenerator(
 
     val interpolationCountByMethod = {
       """  def countBy(where: SQLSyntax)(implicit session: DBSession = autoSession): Long = {
-        |    sql%3quotes%select count(1) from ${%className% as %syntaxName%} where ${where}%3quotes%
+        |    sql%3quotes%select count(1) from ${%objectName% as %syntaxName%} where ${where}%3quotes%
         |      .map(_.long(1)).single.apply().get
         |  }
       """.stripMargin
         .replaceAll("%3quotes%", "\"\"\"")
         .replaceAll("%className%", className)
+        .replaceAll("%objectName%", objectName)
         .replaceAll("%syntaxName%", syntaxName)
     }
 
@@ -346,7 +348,7 @@ class CodeGenerator(
       eol +
       (if (isInterpolation) "" else joinedColumnNames + eol) +
       (if (isInterpolation) "" else joinedMapper + eol) +
-      (if (isInterpolation) 1.indent + "val " + syntaxName + " = " + className + ".syntax(\"" + syntaxName + "\")" + eol + eol else "") +
+      (if (isInterpolation) 1.indent + "val " + syntaxName + " = " + objectName + ".syntax(\"" + syntaxName + "\")" + eol + eol else "") +
       autoSession +
       eol +
       (if (isInterpolation) interpolationFindAllByMethod else findAllByMethod) +
