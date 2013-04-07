@@ -1,6 +1,8 @@
 > show library-dependencies
-> ++ 2.10.1
 > compile
 > squeryl2scalikejdbc
 $ exists src/main/scala/users.scala
 > compile
+> test:compile
+> test
+

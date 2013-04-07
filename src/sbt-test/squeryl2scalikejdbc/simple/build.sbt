@@ -1,4 +1,10 @@
-libraryDependencies += "org.squeryl" %% "squeryl" % "0.9.5-6"
+libraryDependencies ++= Seq(
+  "org.squeryl" %% "squeryl" % "0.9.5-6",
+  "org.specs2" %% "specs2" % "1.14" % "test",
+  "com.h2database" % "h2" % "1.3.171" % "test"
+)
+
+scalaVersion := "2.10.1"
 
 Squeryl2scalikejdbcKeys.scalikejdbcVersion := "1.5.2"
 
