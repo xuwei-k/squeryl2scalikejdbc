@@ -1,0 +1,12 @@
+> show library-dependencies
+> ++ 2.10.1
+> compile
+> squeryl2scalikejdbc
+$ exists src/main/scala/users.scala
+$ pause
+> compile
+> clean
+> ++ 2.9.2
+> squeryl2scalikejdbc
+> compile
+
