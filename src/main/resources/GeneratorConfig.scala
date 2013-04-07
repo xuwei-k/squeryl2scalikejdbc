@@ -15,13 +15,15 @@
  */
 package squeryl2scalikejdbc
 
-case class GeneratorConfig(srcDir: String = "src/main/scala",
+case class GeneratorConfig(
+  srcDir: String = "src/main/scala",
   testDir: String = "src/test/scala",
   packageName: String = "models",
   template: GeneratorTemplate = GeneratorTemplate.interpolation,
   testTemplate: Option[GeneratorTestTemplate] = None,
   lineBreak: LineBreak = LineBreak("\n"),
-  encoding: String = "UTF-8")
+  encoding: String = "UTF-8"
+)
 
 object GeneratorTemplate {
 

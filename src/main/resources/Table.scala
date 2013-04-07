@@ -15,8 +15,15 @@
  */
 package squeryl2scalikejdbc
 
-case class Table(name: String,
+final case class Table(
+  name: String,
+  clazz: Class[_],
   allColumns: List[Column],
-  autoIncrementColumns: List[Column],
-  primaryKeyColumns: List[Column])
+  primaryKeyColumns: List[Column],
+  fileName: String
+){
+
+  val autoIncrementColumns: List[Column] = allColumns.filter(_.isAutoIncrement)
+
+}
 

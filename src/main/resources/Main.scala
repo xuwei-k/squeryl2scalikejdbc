@@ -43,9 +43,10 @@ object Main{
     val allColumns = fields.map(fieldMetaData2Column).toList
     Table(
       name = table.name,
+      clazz = table.posoMetaData.clasz,
       allColumns = allColumns,
-      autoIncrementColumns = allColumns.filter(_.isAutoIncrement),
-      primaryKeyColumns = fields.filter(_.declaredAsPrimaryKeyInSchema).map(fieldMetaData2Column).toList
+      primaryKeyColumns = fields.filter(_.declaredAsPrimaryKeyInSchema).map(fieldMetaData2Column).toList,
+      fileName = table.name
     )
   }
 
@@ -56,8 +57,10 @@ object Main{
   ).map("import " + ).mkString("","\n","\n\n")
 
   def generateModelCode(table: SquerylTable, conf: GeneratorConfig = GeneratorConfig()): String = {
-    val g = new CodeGenerator(squeryTable2table(table), Some(table.posoMetaData.clasz.getSimpleName))(conf)
-    imports + g.objectPart
+    val clazz = table.posoMetaData.clasz
+    val g = new CodeGenerator(squeryTable2table(table), clazz, clazz.getName, "_" + clazz.getSimpleName, conf)
+//    imports + g.objectPart
+    g.modelAll
   }
 
   val class2datatype: Map[Class[_], DataType] = Map[Class[_], DataType](

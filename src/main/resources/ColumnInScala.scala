@@ -5,11 +5,6 @@ import CodeGenerator._
 
 final case class ColumnInScala(underlying: Column) {
 
-  lazy val nameInScala: String = {
-    val camelCase: String = toCamelCase(underlying.name)
-    camelCase.head.toLower + camelCase.tail
-  }
-
   lazy val typeInScala: String = {
     if (underlying.isNotNull) underlying.rawTypeInScala
     else "Option[" + underlying.rawTypeInScala + "]"
