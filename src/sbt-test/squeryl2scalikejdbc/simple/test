@@ -3,7 +3,6 @@
 > compile
 > squeryl2scalikejdbc
 $ exists src/main/scala/users.scala
-$ pause
 > compile
 > clean
 > ++ 2.9.2
