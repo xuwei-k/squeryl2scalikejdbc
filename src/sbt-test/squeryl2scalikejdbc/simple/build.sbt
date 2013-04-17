@@ -1,7 +1,7 @@
 libraryDependencies ++= Seq(
   "org.squeryl" %% "squeryl" % "0.9.5-6",
   "org.specs2" %% "specs2" % "1.14" % "test",
-  "com.h2database" % "h2" % "1.3.171" % "test"
+  "postgresql" % "postgresql" % "9.1-903.jdbc4" from "http://jdbc.postgresql.org/download/postgresql-9.1-903.jdbc4.jar"
 )
 
 scalaVersion := "2.10.1"

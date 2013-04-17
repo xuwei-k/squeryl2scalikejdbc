@@ -2,17 +2,17 @@ package squeryl2scalikejdbc.test
 
 import java.sql.DriverManager
 import org.squeryl.internals.DatabaseAdapter
-import org.squeryl.adapters.H2Adapter
+import org.squeryl.adapters.PostgreSqlAdapter
 import org.squeryl.{Session, SessionFactory}
 import scalikejdbc.JDBCSettings
 
 object Main{
 
   val defaultSettings = JDBCSettings(
-    url = "jdbc:h2:mem:scalikejdbc",
-    user = "hoge",
+    url = "jdbc:postgresql://localhost:5432/squeryl2scalikejdbc",
+    user = "postgres",
     password = "",
-    driverName = "org.h2.Driver"
+    driverName = "org.postgresql.Driver"
   )
 
   def setup(settings: scalikejdbc.JDBCSettings = defaultSettings){
@@ -28,7 +28,7 @@ object Main{
 
   def setupSqueryl(
     settings: scalikejdbc.JDBCSettings,
-    adapter: DatabaseAdapter = new H2Adapter()
+    adapter: DatabaseAdapter = new PostgreSqlAdapter()
   ){
     import settings._
     SessionFactory.concreteFactory = Some(() => {
