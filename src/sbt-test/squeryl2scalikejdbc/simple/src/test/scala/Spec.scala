@@ -22,7 +22,7 @@ class Spec extends Specification with BeforeExample{
     "test" in{
       val user1 = inTransaction{
         schema.users.insert(
-          User(login = "foo", email = "bar@example.com")
+          User(login = "foo", email = "bar@example.com", fooBar = 10, bar = Array(-1))
         )
       }
 
