@@ -18,6 +18,7 @@ object Main{
   def run(clazz: Class[_], dir: String){
     invoke[Iterable[SquerylTable]](clazz, "tables").foreach{ t =>
       val code = generateModelCode(t)
+      println(code)
       Files.write(Paths.get( dir + "/" + t.name + ".scala"), code.getBytes)
     }
   }
