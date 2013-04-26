@@ -5,19 +5,25 @@ import org.squeryl.internals.{FieldMetaData, PosoMetaData}
 import java.nio.file.{Paths, Files}
 import java.io.File
 
+object Bool{
+  def unapply(str: String): Option[Boolean] =
+    Some(java.lang.Boolean.valueOf(str))
+}
+
 object Main{
 
   def main(args: Array[String]){
     args match{
-      case Array(schema, dir) =>
-        run(Class.forName(schema), dir)
+      case Array(schema, dir, Bool(useJoda)) =>
+        run(Class.forName(schema), dir, useJoda)
       case _ => sys.error("invalid params " + args.mkString(" "))
     }
   }
 
-  def run(clazz: Class[_], dir: String){
+  def run(clazz: Class[_], dir: String, useJoda: Boolean){
     invoke[Iterable[SquerylTable]](clazz, "tables").foreach{ t =>
-      val code = generateModelCode(t)
+      val conf = GeneratorConfig(useJoda = useJoda)
+      val code = generateModelCode(t, conf)
       println(code)
       Files.write(Paths.get( dir + "/" + t.name + ".scala"), code.getBytes)
     }
@@ -57,7 +63,7 @@ object Main{
     "java.sql._"
   ).map("import " + ).mkString("","\n","\n\n")
 
-  def generateModelCode(table: SquerylTable, conf: GeneratorConfig = GeneratorConfig()): String = {
+  def generateModelCode(table: SquerylTable, conf: GeneratorConfig): String = {
     val clazz = table.posoMetaData.clasz
     val g = new CodeGenerator(squeryTable2table(table), clazz, clazz.getName, "_" + clazz.getSimpleName, conf)
 //    imports + g.objectPart

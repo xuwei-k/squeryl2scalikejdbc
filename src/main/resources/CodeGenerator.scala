@@ -42,18 +42,16 @@ object CodeGenerator{
     }
   }
 
-  private def cast(column: Column, optional: Boolean): String = column.dataType match {
-    case JavaSqlTypes.DATE if optional => ".map(_.toLocalDate)"
-    case JavaSqlTypes.DATE => ".toLocalDate"
-    case JavaSqlTypes.DECIMAL if optional => ".map(_.toScalaBigDecimal)"
-    case JavaSqlTypes.DECIMAL => ".toScalaBigDecimal"
-    case JavaSqlTypes.NUMERIC if optional => ".map(_.toScalaBigDecimal)"
-    case JavaSqlTypes.NUMERIC => ".toScalaBigDecimal"
-    case JavaSqlTypes.TIME if optional => ".map(_.toLocalTime)"
-    case JavaSqlTypes.TIME => ".toLocalTime"
-    case JavaSqlTypes.TIMESTAMP if optional => ".map(_.toDateTime)"
-    case JavaSqlTypes.TIMESTAMP => ".toDateTime"
-    case _ => ""
+  private def cast(column: Column, optional: Boolean, useJoda: Boolean): String = {
+    import JavaSqlTypes._
+    PartialFunction.condOpt(column.dataType){
+      case DECIMAL | NUMERIC => ".toScalaBigDecimal"
+      case DATE if useJoda => ".toLocalDate"
+      case TIME if useJoda => ".toLocalTime"
+      case TIMESTAMP if useJoda => ".toDateTime"
+    }.map{ t =>
+      if(optional) ".map(_" + t + ")" else t
+    }.getOrElse("")
   }
 
 }
@@ -164,8 +162,8 @@ class CodeGenerator(
       2.indent + "(rs: WrappedResultSet) => " + (if (allColumns.size > 22) "new " else "") + className + "(" + eol +
         allColumns.map {
           c =>
-            if (c.isNotNull) 3.indent + c.nameInScala + " = rs." + c.extractorName + "(" + c.nameInScala + ")" + cast(c, false)
-            else 3.indent + c.nameInScala + " = " + "rs." + c.extractorName + "Opt(" + c.nameInScala + ")" + cast(c, true)
+            if (c.isNotNull) 3.indent + c.nameInScala + " = rs." + c.extractorName + "(" + c.nameInScala + ")" + cast(c, false, config.useJoda)
+            else 3.indent + c.nameInScala + " = " + "rs." + c.extractorName + "Opt(" + c.nameInScala + ")" + cast(c, true, config.useJoda)
         }.mkString(comma + eol) + ")"
     }
 
@@ -179,8 +177,8 @@ class CodeGenerator(
 
     val _interpolationMapper = allColumns.map {
       c =>
-        if (c.isNotNull) 2.indent + c.nameInScala + " = rs." + c.extractorName + "(" + syntaxName + "." + c.nameInScala + ")" + cast(c, false)
-        else 2.indent + c.nameInScala + " = " + "rs." + c.extractorName + "Opt(" + syntaxName + "." + c.nameInScala + ")" + cast(c, true)
+        if (c.isNotNull) 2.indent + c.nameInScala + " = rs." + c.extractorName + "(" + syntaxName + "." + c.nameInScala + ")" + cast(c, false, config.useJoda)
+        else 2.indent + c.nameInScala + " = " + "rs." + c.extractorName + "Opt(" + syntaxName + "." + c.nameInScala + ")" + cast(c, true, config.useJoda)
     }.mkString(comma + eol)
 
     val interpolationMapper = {

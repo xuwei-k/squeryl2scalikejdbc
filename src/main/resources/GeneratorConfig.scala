@@ -19,6 +19,7 @@ case class GeneratorConfig(
   srcDir: String = "src/main/scala",
   testDir: String = "src/test/scala",
   packageName: String = "models",
+  useJoda: Boolean = true,
   template: GeneratorTemplate = GeneratorTemplate.interpolation,
   testTemplate: Option[GeneratorTestTemplate] = None,
   lineBreak: LineBreak = LineBreak("\n"),
