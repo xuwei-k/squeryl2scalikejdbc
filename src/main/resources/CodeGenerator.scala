@@ -344,6 +344,8 @@ class CodeGenerator(
       eol +
       (if (isInterpolation) 1.indent + "override val columns = Seq(" + allColumns.map(c => c.name).mkString("\"", "\", \"", "\"") + ")" + eol else columnNames) +
       eol +
+      1.indent + "override val nameConverters = Map(" + allColumns.map(c => s""""${c.nameInScala}" -> "${c.name}"""").mkString(", ") + ")" + eol +
+      eol +
       (if (isInterpolation) interpolationMapper else mapper) +
       eol +
       (if (isInterpolation) "" else joinedColumnNames + eol) +
