@@ -5,7 +5,7 @@ import sbt._,Keys._
 object Plugin extends sbt.Plugin{
 
   object Squeryl2scalikejdbcKeys{
-    val scalikejdbcVersion = SettingKey[String]("squeryl2scalikejdbc-scalikejdbc-version")
+    val scalikejdbcVersion = SettingKey[Option[String]]("squeryl2scalikejdbc-scalikejdbc-version")
     val dependencies = SettingKey[ModuleID]("squeryl2scalikejdbc-dependencies")
     val outputDirectory = SettingKey[File]("squeryl2scalikejdbc-output-directory")
     val schema = SettingKey[String]("squeryl2scalikejdbc-schema")
@@ -15,8 +15,11 @@ object Plugin extends sbt.Plugin{
   import Squeryl2scalikejdbcKeys._
 
   val squeryl2scalikejdbcSettings: Seq[sbt.Project.Setting[_]] = seq(
-    dependencies <<= (scalikejdbcVersion, scalaBinaryVersion)((v, scalaV) =>
-      "com.github.seratch" % ("scalikejdbc-interpolation_" + scalaV) % v
+    scalikejdbcVersion := None,
+    dependencies <++= (scalikejdbcVersion, scalaBinaryVersion)((scalikejdbcV, scalaV) =>
+      scalikejdbcV.map( v =>
+        Seq("com.github.seratch" % ("scalikejdbc-interpolation_" + scalaV) % v)
+      ).getOrElse(Nil)
     ),
     libraryDependencies <+= dependencies,
     sourceGenerators in Compile <+= (sourceManaged in Compile){ dir => task{
