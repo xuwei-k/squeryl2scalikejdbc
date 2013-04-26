@@ -1,7 +1,7 @@
 > show library-dependencies
 > compile
 > squeryl2scalikejdbc
-$ exists src/main/scala/users.scala
+$ exists src/main/scala/foo/bar/users.scala
 > compile
 > test:compile
 > test

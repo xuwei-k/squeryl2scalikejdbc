@@ -25,6 +25,7 @@ object Main{
       val conf = GeneratorConfig(useJoda = useJoda)
       val code = generateModelCode(t, conf)
       println(code)
+      new File(dir).mkdirs()
       Files.write(Paths.get( dir + "/" + t.name + ".scala"), code.getBytes)
     }
   }

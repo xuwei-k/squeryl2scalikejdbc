@@ -8,7 +8,7 @@ scalaVersion := "2.10.1"
 
 squeryl2scalikejdbcSettings
 
-Squeryl2scalikejdbcKeys.outputDirectory <<= scalaSource in Compile
+Squeryl2scalikejdbcKeys.outputDirectory <<= (scalaSource in Compile)(_ / "foo" / "bar")
 
 Squeryl2scalikejdbcKeys.schema := "squeryl2scalikejdbc.test.schema$"
 
