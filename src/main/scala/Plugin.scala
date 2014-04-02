@@ -14,9 +14,9 @@ object Plugin extends sbt.Plugin{
 
   import Squeryl2scalikejdbcKeys._
 
-  val squeryl2scalikejdbcSettings: Seq[sbt.Project.Setting[_]] = seq(
+  val squeryl2scalikejdbcSettings: Seq[Def.Setting[_]] = Seq(
     dependencies <<= (scalikejdbcVersion, scalaBinaryVersion)((v, scalaV) =>
-      "com.github.seratch" % ("scalikejdbc-interpolation_" + scalaV) % v
+      "org.scalikejdbc" % ("scalikejdbc-interpolation_" + scalaV) % v
     ),
     libraryDependencies <+= dependencies,
     sourceGenerators in Compile <+= (sourceManaged in Compile){ dir => task{

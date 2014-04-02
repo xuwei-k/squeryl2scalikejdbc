@@ -1,5 +1,5 @@
 language: scala
-script: sh ./travis-test.sh
+script: sbt scripted
 before_script:
   - psql -c 'create database squeryl2scalikejdbc' -U postgres
 

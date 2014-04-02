@@ -35,7 +35,7 @@ description := "Scalikejdbc mapper generator from Squeryl case classes"
 ScriptedPlugin.scriptedBufferLog := false
 
 ScriptedPlugin.scriptedLaunchOpts := sys.process.javaVmArguments.filter(
-  a => Seq("-Xmx","-Xms").exists(a.startsWith) || a.startsWith("-XX")
+  a => Seq("-Xmx", "-Xms", "-XX").exists(a.startsWith)
 )
 
 watchSources <++= ScriptedPlugin.sbtTestDirectory.map{ dir => (dir ***).get }

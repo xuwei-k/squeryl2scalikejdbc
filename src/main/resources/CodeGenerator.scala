@@ -247,7 +247,7 @@ class CodeGenerator(
      * val autoSession = AutoSession
      * }}}
      */
-    val autoSession = "  val autoSession = AutoSession" + eol
+    val autoSession = "  override val autoSession = AutoSession" + eol
 
     /**
      * {{{
